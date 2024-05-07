@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -46,19 +45,26 @@ namespace AccountProvider.Functions
                 {
                     try
                     {
-                        var result = await _signInManager.PasswordSignInAsync(signInRequest.Email, signInRequest.Password, signInRequest.IsPersistent, false);
-                        if (result.Succeeded)
+                        var userAccount = await _userManager.FindByEmailAsync(signInRequest.Email);
+                        if (userAccount != null)
                         {
-                            //get token from tokenprovider
-                            return new OkObjectResult("accesstoken");
+                            var result = await _signInManager.CheckPasswordSignInAsync(userAccount, signInRequest.Password, false);
+                            if (result.Succeeded)
+                            {
+                                //get token from tokenprovider
+                                return new OkObjectResult("accesstoken");
+                            }
                         }
 
-                        return new UnauthorizedResult();
+
+
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError($"_signInManager.PasswordSignInAsync :: {ex.Message}");
                     }
+
+                    return new UnauthorizedResult();
                 }
             }
 
